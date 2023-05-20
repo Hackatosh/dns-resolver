@@ -1,11 +1,15 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 )
 
 func main() {
+	dnsServer := DNSServer{
+		network: "udp",
+		address: "8.8.8.8",
+		port:    53,
+	}
 	headers := DNSHeaders{
 		id:                    1,
 		flags:                 DNSFlags{isRecursionDesired: true},
@@ -26,5 +30,11 @@ func main() {
 
 	dnsQuery := append(encodedHeaders, encodedQuestion...)
 
-	fmt.Println(hex.EncodeToString(dnsQuery))
+	response, err := makeRequest(dnsServer, dnsQuery)
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(response)
+	}
 }
