@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fmt.Println(buildDNSFlagsAsBytes(DNSFlags{isResponse: true}))
+	fmt.Println(encodeDNSFlagsAsUint16(DNSFlags{isResponse: true}))
 }
