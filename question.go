@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 )
 
@@ -12,7 +13,7 @@ type DNSQuestion struct {
 }
 
 // Todo : verify that the domain name is in ascii
-func encodeDomainName(domainName string) bytes.Buffer {
+func encodeDomainNameAsBytes(domainName string) []byte {
 	encodedResult := bytes.Buffer{}
 	splitted := strings.Split(domainName, ".")
 	for _, part := range splitted {
@@ -20,9 +21,12 @@ func encodeDomainName(domainName string) bytes.Buffer {
 		encodedResult.WriteString(part)
 	}
 	encodedResult.Write([]byte{byte(0)})
-	return encodedResult
+	return encodedResult.Bytes()
 }
 
 func encodeDNSQuestionAsBytes(question DNSQuestion) []byte {
-
+	bytes := encodeDomainNameAsBytes(question.domainName)
+	bytes = binary.BigEndian.AppendUint16(bytes, question.type_)
+	bytes = binary.BigEndian.AppendUint16(bytes, question.class)
+	return bytes
 }
