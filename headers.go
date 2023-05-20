@@ -64,16 +64,6 @@ func setMultipleBits(flagsAsBytes uint16, pos uint, bitesToSet uint16) uint16 {
 	return flagsAsBytes
 }
 
-func hasSingleBit(n uint16, pos uint) bool {
-	val := n & (1 << pos)
-	return (val > 0)
-}
-
-func get4BitesNumber(n uint16, pos uint) uint16 {
-	val := n & (15 << pos) // 15 is 0000 1111
-	return val
-}
-
 func encodeDNSFlagsAsUint16(flags DNSFlags) uint16 {
 	var flagsAsBytes uint16 = 0
 	flagsAsBytes = setSingleBit(flagsAsBytes, 0, flags.isResponse)
@@ -87,16 +77,19 @@ func encodeDNSFlagsAsUint16(flags DNSFlags) uint16 {
 	return flagsAsBytes
 }
 
-func decodeUint16AsDNSFlags(encodedFlags uint16) DNSFlags {
-	isResponse := hasSingleBit(encodedFlags, 0)
-	operationCode := get4BitesNumber(encodedFlags, 1)
-	isAuthoritative := hasSingleBit(encodedFlags, 5)
-	isTruncated := hasSingleBit(encodedFlags, 6)
-	isRecursionDesired := hasSingleBit(encodedFlags, 7)
-	isRecursionAvailable := hasSingleBit(encodedFlags, 8)
+func decodeBytesAsDNSFlags(encodedFlags []byte) DNSFlags {
+	// Byte are in reverse order regarding the spec !
+	// Probably some big endian / little endian shenanigans
+	// This has helped : https://github.com/google/gopacket/blob/master/layers/dns.go
+	isResponse := encodedFlags[0]&0x80 != 0
+	operationCode := OperationCode((encodedFlags[0] >> 3) & 0x0F)
+	isAuthoritative := encodedFlags[0]&0x04 != 0
+	isTruncated := encodedFlags[0]&0x02 != 0
+	isRecursionDesired := encodedFlags[0]&0x01 != 0
+	isRecursionAvailable := encodedFlags[1]&0x80 != 0
 	// 3 bits are reserved
-	responseCode := get4BitesNumber(encodedFlags, 11)
-	return DNSFlags{isResponse: isResponse, operationCode: OperationCode(operationCode), isAuthoritative: isAuthoritative, isTruncated: isTruncated, isRecursionDesired: isRecursionDesired, isRecursionAvailable: isRecursionAvailable, responseCode: ResponseCode(responseCode)}
+	responseCode := ResponseCode(encodedFlags[1] & 0xF)
+	return DNSFlags{isResponse: isResponse, operationCode: operationCode, isAuthoritative: isAuthoritative, isTruncated: isTruncated, isRecursionDesired: isRecursionDesired, isRecursionAvailable: isRecursionAvailable, responseCode: responseCode}
 }
 
 func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
@@ -112,7 +105,7 @@ func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
 
 func decodeBytesAsDNSHeaders(bytes []byte) DNSHeaders {
 	id := binary.BigEndian.Uint16(bytes[:2])
-	flags := decodeUint16AsDNSFlags(binary.BigEndian.Uint16(bytes[2:4]))
+	flags := decodeBytesAsDNSFlags(bytes[2:4])
 	questionCount := binary.BigEndian.Uint16(bytes[4:6])
 	answerRecordCount := binary.BigEndian.Uint16(bytes[6:8])
 	authorityRecordCount := binary.BigEndian.Uint16(bytes[8:10])

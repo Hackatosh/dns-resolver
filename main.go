@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 )
 
@@ -11,7 +12,7 @@ func main() {
 		port:    53,
 	}
 	headers := DNSHeaders{
-		id:                    1,
+		id:                    uint16(1),
 		flags:                 DNSFlags{isRecursionDesired: true},
 		questionCount:         1,
 		answerRecordCount:     0,
@@ -36,5 +37,10 @@ func main() {
 		fmt.Println(err)
 	} else {
 		fmt.Println(response)
+		responseDNSHeaders := decodeBytesAsDNSHeaders(response[:12])
+		fmt.Printf("%+v\n", headers)
+		fmt.Println(hex.EncodeToString(encodedHeaders))
+		fmt.Printf("%+v\n", responseDNSHeaders)
+		fmt.Println(hex.EncodeToString(response[:12]))
 	}
 }
