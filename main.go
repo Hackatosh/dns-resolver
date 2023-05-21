@@ -38,8 +38,9 @@ func main() {
 	}
 	responseDNSHeaders := decodeBytesAsDNSHeaders(response)
 
-	responseQuestion, _ := decodeBytesAsQuestion(response, 12)
-
+	responseQuestion, index := decodeBytesAsDNSQuestion(response, 12)
+	responseRecord, index := decodeBytesAsDNSRecord(response, index)
 	fmt.Printf("%+v\n", responseDNSHeaders)
 	fmt.Printf("%+v\n", responseQuestion)
+	fmt.Printf("%+v\n", responseRecord)
 }

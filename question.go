@@ -12,6 +12,14 @@ type DNSQuestion struct {
 	class      uint16
 }
 
+type DNSRecord struct {
+	domainName string
+	type_      uint16 // type is a reserved keyword
+	class      uint16
+	ttl        uint32
+	data       []byte
+}
+
 // Todo : verify that the domain name is in ascii
 func encodeDomainNameAsBytes(domainName string) []byte {
 	encodedResult := bytes.Buffer{}
@@ -46,11 +54,23 @@ func decodeBytesAsDomainName(data []byte, index int) (string, int) {
 	return strings.Join(parts, "."), index
 }
 
-func decodeBytesAsQuestion(data []byte, index int) (DNSQuestion, int) {
+func decodeBytesAsDNSQuestion(data []byte, index int) (DNSQuestion, int) {
 	dnsQuestion := DNSQuestion{}
 	dnsQuestion.domainName, index = decodeBytesAsDomainName(data, index)
 
 	dnsQuestion.type_ = binary.BigEndian.Uint16(data[index : index+2])
 	dnsQuestion.class = binary.BigEndian.Uint16(data[index+2 : index+4])
 	return dnsQuestion, index + 4
+}
+
+func decodeBytesAsDNSRecord(data []byte, index int) (DNSRecord, int) {
+	dnsRecord := DNSRecord{}
+	dnsRecord.domainName, index = decodeBytesAsDomainName(data, index)
+	dnsRecord.type_ = binary.BigEndian.Uint16(data[index : index+2])
+	dnsRecord.class = binary.BigEndian.Uint16(data[index+2 : index+4])
+	dnsRecord.ttl = binary.BigEndian.Uint32(data[index+4 : index+8])
+	dataLength := int(binary.BigEndian.Uint16(data[index+8 : index+10]))
+	dnsRecord.data = data[index+10 : index+10+dataLength]
+	index += 10 + dataLength
+	return dnsRecord, index
 }
