@@ -10,8 +10,9 @@ import (
 type RecordType uint16
 
 const (
-	TYPE_A  RecordType = 1
-	TYPE_NS RecordType = 2
+	TYPE_A     RecordType = 1
+	TYPE_NS    RecordType = 2
+	TYPE_CNAME RecordType = 5
 )
 
 type DNSQuestion struct {
@@ -113,8 +114,10 @@ func decodeBytesAsDNSRecord(data []byte, index int) (DNSRecord, int) {
 		dnsRecord.data = rawIPToString(rawData)
 	case TYPE_NS:
 		dnsRecord.data, index = decodeBytesAsDomainName(data, index+10)
+	case TYPE_CNAME:
+		dnsRecord.data, index = decodeBytesAsDomainName(data, index+10)
 	default:
-		dnsRecord.data = ""
+		dnsRecord.data = "unknown dns record type so this was not decoded !!!"
 		index += 10 + dataLength
 	}
 	return dnsRecord, index
