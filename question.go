@@ -43,10 +43,19 @@ func decodeBytesAsDomainName(data []byte, index int) (string, int) {
 	parts := make([]string, 0)
 
 	for length := data[index]; length != 0; length = data[index] {
-		index += 1
-		part := data[index : index+int(length)]
-		index += int(length)
-		parts = append(parts, string(part))
+		var part string
+		// data is compressed
+		if length&0xc0 != 0 {
+			pointer := int(binary.BigEndian.Uint16(data[index:index+2]) & 0x3fff)
+			part, _ = decodeBytesAsDomainName(data, pointer)
+			// Pointer is 2 bytes length
+			index += 2
+		} else {
+			index += 1
+			part = string(data[index : index+int(length)])
+			index += int(length)
+		}
+		parts = append(parts, part)
 	}
 	// We don't go in the loop so you need to account for the 0 length octet we just read
 	index += 1

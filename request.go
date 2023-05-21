@@ -23,7 +23,7 @@ func makeRequest(dnsServer DNSServer, requestInBytes []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 2048)
 	mLen, err := connection.Read(buffer)
 	if err != nil {
 		return nil, err
