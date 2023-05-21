@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 )
 
@@ -35,12 +34,18 @@ func main() {
 
 	if err != nil {
 		fmt.Println(err)
-	} else {
-		fmt.Println(response)
-		responseDNSHeaders := decodeBytesAsDNSHeaders(response[:12])
-		fmt.Printf("%+v\n", headers)
-		fmt.Println(hex.EncodeToString(encodedHeaders))
-		fmt.Printf("%+v\n", responseDNSHeaders)
-		fmt.Println(hex.EncodeToString(response[:12]))
+		return
 	}
+	responseDNSHeaders, err := decodeBytesAsDNSHeaders(response)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	responseQuestion, err := decodeBytesAsQuestion(response)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("%+v\n", responseDNSHeaders)
+	fmt.Printf("%+v\n", responseQuestion)
 }

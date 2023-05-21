@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 )
 
@@ -78,18 +79,19 @@ func encodeDNSFlagsAsUint16(flags DNSFlags) uint16 {
 }
 
 func decodeBytesAsDNSFlags(encodedFlags []byte) DNSFlags {
+	dnsFlags := DNSFlags{}
 	// Byte are in reverse order regarding the spec !
 	// Probably some big endian / little endian shenanigans
 	// This has helped : https://github.com/google/gopacket/blob/master/layers/dns.go
-	isResponse := encodedFlags[0]&0x80 != 0
-	operationCode := OperationCode((encodedFlags[0] >> 3) & 0x0F)
-	isAuthoritative := encodedFlags[0]&0x04 != 0
-	isTruncated := encodedFlags[0]&0x02 != 0
-	isRecursionDesired := encodedFlags[0]&0x01 != 0
-	isRecursionAvailable := encodedFlags[1]&0x80 != 0
+	dnsFlags.isResponse = encodedFlags[0]&0x80 != 0
+	dnsFlags.operationCode = OperationCode((encodedFlags[0] >> 3) & 0x0F)
+	dnsFlags.isAuthoritative = encodedFlags[0]&0x04 != 0
+	dnsFlags.isTruncated = encodedFlags[0]&0x02 != 0
+	dnsFlags.isRecursionDesired = encodedFlags[0]&0x01 != 0
+	dnsFlags.isRecursionAvailable = encodedFlags[1]&0x80 != 0
 	// 3 bits are reserved
-	responseCode := ResponseCode(encodedFlags[1] & 0xF)
-	return DNSFlags{isResponse: isResponse, operationCode: operationCode, isAuthoritative: isAuthoritative, isTruncated: isTruncated, isRecursionDesired: isRecursionDesired, isRecursionAvailable: isRecursionAvailable, responseCode: responseCode}
+	dnsFlags.responseCode = ResponseCode(encodedFlags[1] & 0xF)
+	return dnsFlags
 }
 
 func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
@@ -103,12 +105,19 @@ func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
 	return bytes
 }
 
-func decodeBytesAsDNSHeaders(bytes []byte) DNSHeaders {
-	id := binary.BigEndian.Uint16(bytes[:2])
-	flags := decodeBytesAsDNSFlags(bytes[2:4])
-	questionCount := binary.BigEndian.Uint16(bytes[4:6])
-	answerRecordCount := binary.BigEndian.Uint16(bytes[6:8])
-	authorityRecordCount := binary.BigEndian.Uint16(bytes[8:10])
-	additionalRecordCount := binary.BigEndian.Uint16(bytes[10:12])
-	return DNSHeaders{id: id, flags: flags, questionCount: questionCount, answerRecordCount: answerRecordCount, authorityRecordCount: authorityRecordCount, additionalRecordCount: additionalRecordCount}
+func decodeBytesAsDNSHeaders(reader bytes.Reader) (DNSHeaders, error) {
+	dnsHeaders := DNSHeaders{}
+	encodedDNSHeaders := make([]byte, 12)
+	// Try to read the bytes needed
+	_, err := reader.Read(encodedDNSHeaders)
+	if err != nil {
+		return dnsHeaders, err
+	}
+	dnsHeaders.id = binary.BigEndian.Uint16(encodedDNSHeaders[:2])
+	dnsHeaders.flags = decodeBytesAsDNSFlags(encodedDNSHeaders[2:4])
+	dnsHeaders.questionCount = binary.BigEndian.Uint16(encodedDNSHeaders[4:6])
+	dnsHeaders.answerRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[6:8])
+	dnsHeaders.authorityRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[8:10])
+	dnsHeaders.additionalRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[10:12])
+	return dnsHeaders, nil
 }

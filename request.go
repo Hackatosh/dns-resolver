@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 )
@@ -11,22 +12,22 @@ type DNSServer struct {
 	port    uint16
 }
 
-func makeRequest(dnsServer DNSServer, requestInBytes []byte) ([]byte, error) {
+func makeRequest(dnsServer DNSServer, requestInBytes []byte) (bytes.Reader, error) {
 	//establish connection
 	connection, err := net.Dial(dnsServer.network, fmt.Sprintf("%s:%d", dnsServer.address, dnsServer.port))
 	if err != nil {
-		return nil, err
+		return bytes.Reader{}, err
 	}
 	defer connection.Close()
 	///send some data
 	_, err = connection.Write(requestInBytes)
 	if err != nil {
-		return nil, err
+		return bytes.Reader{}, err
 	}
 	buffer := make([]byte, 1024)
 	mLen, err := connection.Read(buffer)
 	if err != nil {
-		return nil, err
+		return bytes.Reader{}, err
 	}
-	return buffer[:mLen], nil
+	return *bytes.NewReader(buffer[:mLen]), nil
 }
