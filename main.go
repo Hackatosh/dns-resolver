@@ -36,16 +36,10 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	responseDNSHeaders, err := decodeBytesAsDNSHeaders(response)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	responseQuestion, err := decodeBytesAsQuestion(response)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	responseDNSHeaders := decodeBytesAsDNSHeaders(response)
+
+	responseQuestion, _ := decodeBytesAsQuestion(response, 12)
+
 	fmt.Printf("%+v\n", responseDNSHeaders)
 	fmt.Printf("%+v\n", responseQuestion)
 }

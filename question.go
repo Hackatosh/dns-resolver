@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"strings"
 )
 
@@ -32,9 +31,8 @@ func encodeDNSQuestionAsBytes(question DNSQuestion) []byte {
 	return bytes
 }
 
-func decodeBytesAsDomainName(data []byte) (string, int, error) {
+func decodeBytesAsDomainName(data []byte, index int) (string, int) {
 	parts := make([]string, 0)
-	index := 12
 
 	for length := data[index]; length != 0; length = data[index] {
 		index += 1
@@ -45,20 +43,14 @@ func decodeBytesAsDomainName(data []byte) (string, int, error) {
 	// We don't go in the loop so you need to account for the 0 length octet we just read
 	index += 1
 
-	return strings.Join(parts, "."), index, nil
+	return strings.Join(parts, "."), index
 }
 
-func decodeBytesAsQuestion(data []byte) (DNSQuestion, error) {
-	var err error
-	var index int
-	fmt.Println(string(data[12:]))
+func decodeBytesAsQuestion(data []byte, index int) (DNSQuestion, int) {
 	dnsQuestion := DNSQuestion{}
-	dnsQuestion.domainName, index, err = decodeBytesAsDomainName(data)
-	if err != nil {
-		return dnsQuestion, err
-	}
+	dnsQuestion.domainName, index = decodeBytesAsDomainName(data, index)
 
 	dnsQuestion.type_ = binary.BigEndian.Uint16(data[index : index+2])
 	dnsQuestion.class = binary.BigEndian.Uint16(data[index+2 : index+4])
-	return dnsQuestion, nil
+	return dnsQuestion, index + 4
 }
