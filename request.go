@@ -5,28 +5,22 @@ import (
 	"net"
 )
 
-type DNSServer struct {
-	network string
-	address string
-	port    uint16
-}
-
-func makeRequest(dnsServer DNSServer, requestInBytes []byte) ([]byte, error) {
+func sendDNSQuery(dnsServerIpAddress string, dnsQuery []byte) (DNSPacket, error) {
 	//establish connection
-	connection, err := net.Dial(dnsServer.network, fmt.Sprintf("%s:%d", dnsServer.address, dnsServer.port))
+	connection, err := net.Dial("udp", fmt.Sprintf("%s:%d", dnsServerIpAddress, 53))
 	if err != nil {
-		return nil, err
+		return DNSPacket{}, err
 	}
 	defer connection.Close()
 	///send some data
-	_, err = connection.Write(requestInBytes)
+	_, err = connection.Write(dnsQuery)
 	if err != nil {
-		return nil, err
+		return DNSPacket{}, err
 	}
-	buffer := make([]byte, 2048)
+	buffer := make([]byte, 1024)
 	mLen, err := connection.Read(buffer)
 	if err != nil {
-		return nil, err
+		return DNSPacket{}, err
 	}
-	return buffer[:mLen], nil
+	return decodeBytesAsDNSPacket(buffer[:mLen]), nil
 }

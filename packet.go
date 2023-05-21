@@ -4,22 +4,28 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"net"
 	"strings"
+)
+
+type RecordType uint16
+
+const (
+	TYPE_A  RecordType = 1
+	TYPE_NS RecordType = 2
 )
 
 type DNSQuestion struct {
 	domainName string
-	type_      uint16 // type is a reserved keyword
+	type_      RecordType // type is a reserved keyword
 	class      uint16
 }
 
 type DNSRecord struct {
 	domainName string
-	type_      uint16 // type is a reserved keyword
+	type_      RecordType // type is a reserved keyword
 	class      uint16
 	ttl        uint32
-	data       net.IP
+	data       string
 }
 
 type DNSPacket struct {
@@ -44,7 +50,7 @@ func encodeDomainNameAsBytes(domainName string) []byte {
 
 func encodeDNSQuestionAsBytes(question DNSQuestion) []byte {
 	domainNameAsBytes := encodeDomainNameAsBytes(question.domainName)
-	domainNameAsBytes = binary.BigEndian.AppendUint16(domainNameAsBytes, question.type_)
+	domainNameAsBytes = binary.BigEndian.AppendUint16(domainNameAsBytes, uint16(question.type_))
 	domainNameAsBytes = binary.BigEndian.AppendUint16(domainNameAsBytes, question.class)
 	return domainNameAsBytes
 }
@@ -78,13 +84,13 @@ func decodeBytesAsDNSQuestion(data []byte, index int) (DNSQuestion, int) {
 	dnsQuestion := DNSQuestion{}
 	dnsQuestion.domainName, index = decodeBytesAsDomainName(data, index)
 
-	dnsQuestion.type_ = binary.BigEndian.Uint16(data[index : index+2])
+	dnsQuestion.type_ = RecordType(binary.BigEndian.Uint16(data[index : index+2]))
 	dnsQuestion.class = binary.BigEndian.Uint16(data[index+2 : index+4])
 	return dnsQuestion, index + 4
 }
 
 // We could use net.IP for this but it would be a bit of cheating !
-func rawDNSRecordDataToString(dnsRecordData []byte) string {
+func rawIPToString(dnsRecordData []byte) string {
 	parts := make([]string, 0)
 	for _, rawByte := range dnsRecordData {
 		parts = append(parts, fmt.Sprintf("%d", rawByte))
@@ -95,12 +101,22 @@ func rawDNSRecordDataToString(dnsRecordData []byte) string {
 func decodeBytesAsDNSRecord(data []byte, index int) (DNSRecord, int) {
 	dnsRecord := DNSRecord{}
 	dnsRecord.domainName, index = decodeBytesAsDomainName(data, index)
-	dnsRecord.type_ = binary.BigEndian.Uint16(data[index : index+2])
+	dnsRecord.type_ = RecordType(binary.BigEndian.Uint16(data[index : index+2]))
 	dnsRecord.class = binary.BigEndian.Uint16(data[index+2 : index+4])
 	dnsRecord.ttl = binary.BigEndian.Uint32(data[index+4 : index+8])
 	dataLength := int(binary.BigEndian.Uint16(data[index+8 : index+10]))
-	dnsRecord.data = data[index+10 : index+10+dataLength]
-	index += 10 + dataLength
+
+	switch RecordType(dnsRecord.type_) {
+	case TYPE_A:
+		rawData := data[index+10 : index+10+dataLength]
+		index += 10 + dataLength
+		dnsRecord.data = rawIPToString(rawData)
+	case TYPE_NS:
+		dnsRecord.data, index = decodeBytesAsDomainName(data, index+10)
+	default:
+		dnsRecord.data = ""
+		index += 10 + dataLength
+	}
 	return dnsRecord, index
 }
 
