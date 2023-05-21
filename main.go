@@ -7,6 +7,7 @@ import (
 
 // https://www.iana.org/domains/root/servers
 const ROOT_SERVER_IP_ADDRESS = "198.41.0.4"
+const ROOT_SERVER_DOMAIN_NAME = "a.root-servers.net"
 
 func sendQueryForDomainName(dnsServerIpAddress string, domainName string) DNSPacket {
 	headers := DNSHeaders{
@@ -42,13 +43,13 @@ func getIpFromDNSPacket(packet DNSPacket) string {
 	return ""
 }
 
-func getNameServerIpFromDNSPacket(packet DNSPacket) string {
+func getNameServerIpAndDomainNameFromDNSPacket(packet DNSPacket) (string, string) {
 	for _, additional := range packet.additionals {
 		if additional.type_ == TYPE_A {
-			return additional.data
+			return additional.data, additional.domainName
 		}
 	}
-	return ""
+	return "", ""
 }
 
 func getNameServerDomainNameFromDNSPacket(packet DNSPacket) string {
@@ -71,9 +72,11 @@ func getCNameFromDNSPacket(packet DNSPacket) string {
 
 func resolveDomainNameToIp(domainName string) string {
 	nameServerIP := ROOT_SERVER_IP_ADDRESS
+	nameServerDomainName := ROOT_SERVER_DOMAIN_NAME
 	var resolvedIp string
 	for true {
-		fmt.Println(fmt.Sprintf("Query name server %s for domain name %s", nameServerIP, domainName))
+		// Log and send the request
+		fmt.Println(fmt.Sprintf("Query name server %s (%s) for domain name %s", nameServerDomainName, nameServerIP, domainName))
 		dnsPacket := sendQueryForDomainName(nameServerIP, domainName)
 		// The Ip we are looking for is directly in the packet, yay !
 		ip := getIpFromDNSPacket(dnsPacket)
@@ -88,13 +91,13 @@ func resolveDomainNameToIp(domainName string) string {
 			break
 		}
 		// The server we queried does not have the response but it indicates us a server which might know the answer, directly via its IP. Great !
-		nameServerIP = getNameServerIpFromDNSPacket(dnsPacket)
+		nameServerIP, nameServerDomainName = getNameServerIpAndDomainNameFromDNSPacket(dnsPacket)
 		if nameServerIP != "" {
 			continue
 		}
 		// The server we queried does not have the response but it indicates us a server which might know the answer, with its domain name.
 		// We can resolve that and then continue our loop to find the IP we wanted initially
-		nameServerDomainName := getNameServerDomainNameFromDNSPacket(dnsPacket)
+		nameServerDomainName = getNameServerDomainNameFromDNSPacket(dnsPacket)
 		if nameServerDomainName != "" {
 			nameServerIP = resolveDomainNameToIp(nameServerDomainName)
 			continue
@@ -107,5 +110,7 @@ func resolveDomainNameToIp(domainName string) string {
 }
 
 func main() {
-	fmt.Println(resolveDomainNameToIp("www.facebook.com"))
+	const DOMAIN_NAME_TO_RESOLVE = "www.facebook.com"
+	ipResolved := resolveDomainNameToIp(DOMAIN_NAME_TO_RESOLVE)
+	fmt.Println(fmt.Sprintf("Resolved domain name %s with ip %s", DOMAIN_NAME_TO_RESOLVE, ipResolved))
 }
