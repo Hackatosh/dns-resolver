@@ -41,24 +41,26 @@ func encodeDNSQuestionAsBytes(question DNSQuestion) []byte {
 
 func decodeBytesAsDomainName(data []byte, index int) (string, int) {
 	parts := make([]string, 0)
-
-	for length := data[index]; length != 0; length = data[index] {
-		var part string
+	length := data[index]
+	index += 1
+	for length != 0 {
 		// data is compressed
 		if length&0xc0 != 0 {
-			pointer := int(binary.BigEndian.Uint16(data[index:index+2]) & 0x3fff)
-			part, _ = decodeBytesAsDomainName(data, pointer)
+			pointer := int(binary.BigEndian.Uint16(data[index-1:index+1]) & 0x3fff)
+			part, _ := decodeBytesAsDomainName(data, pointer)
+			parts = append(parts, part)
 			// Pointer is 2 bytes length
-			index += 2
-		} else {
 			index += 1
-			part = string(data[index : index+int(length)])
+			break
+		} else {
+			part := string(data[index : index+int(length)])
+			parts = append(parts, part)
 			index += int(length)
+			length = data[index]
+			index += 1
 		}
-		parts = append(parts, part)
+
 	}
-	// We don't go in the loop so you need to account for the 0 length octet we just read
-	index += 1
 
 	return strings.Join(parts, "."), index
 }
