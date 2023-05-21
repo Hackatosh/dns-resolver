@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -105,14 +104,9 @@ func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
 	return bytes
 }
 
-func decodeBytesAsDNSHeaders(reader bytes.Reader) (DNSHeaders, error) {
+func decodeBytesAsDNSHeaders(data []byte) (DNSHeaders, error) {
 	dnsHeaders := DNSHeaders{}
-	encodedDNSHeaders := make([]byte, 12)
-	// Try to read the bytes needed
-	_, err := reader.Read(encodedDNSHeaders)
-	if err != nil {
-		return dnsHeaders, err
-	}
+	encodedDNSHeaders := data[:12]
 	dnsHeaders.id = binary.BigEndian.Uint16(encodedDNSHeaders[:2])
 	dnsHeaders.flags = decodeBytesAsDNSFlags(encodedDNSHeaders[2:4])
 	dnsHeaders.questionCount = binary.BigEndian.Uint16(encodedDNSHeaders[4:6])

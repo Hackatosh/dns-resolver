@@ -32,50 +32,33 @@ func encodeDNSQuestionAsBytes(question DNSQuestion) []byte {
 	return bytes
 }
 
-func decodeBytesAsDomainName(reader bytes.Reader) (string, error) {
+func decodeBytesAsDomainName(data []byte) (string, int, error) {
 	parts := make([]string, 0)
-	var lengthAsByte byte
-	var err error
-	// Read next length
-	lengthAsByte, err = reader.ReadByte()
-	if err != nil {
-		return "", err
-	}
-	fmt.Println(lengthAsByte)
-	for uint16(lengthAsByte) != 0 {
-		// Read current part and add it to the result
-		part := make([]byte, uint16(lengthAsByte))
-		_, err = reader.Read(part)
-		if err != nil {
-			return "", err
-		}
+	index := 12
+
+	for length := data[index]; length != 0; length = data[index] {
+		index += 1
+		part := data[index : index+int(length)]
+		index += int(length)
 		parts = append(parts, string(part))
-
-		// Read next length
-		lengthAsByte, err = reader.ReadByte()
-		if err != nil {
-			return "", err
-		}
 	}
+	// We don't go in the loop so you need to account for the 0 length octet we just read
+	index += 1
 
-	return strings.Join(parts, "."), nil
+	return strings.Join(parts, "."), index, nil
 }
 
-func decodeBytesAsQuestion(reader bytes.Reader) (DNSQuestion, error) {
+func decodeBytesAsQuestion(data []byte) (DNSQuestion, error) {
 	var err error
+	var index int
+	fmt.Println(string(data[12:]))
 	dnsQuestion := DNSQuestion{}
-	dnsQuestion.domainName, err = decodeBytesAsDomainName(reader)
-	if err != nil {
-		return dnsQuestion, err
-	}
-	encodedTypeAndClass := make([]byte, 4)
-	_, err = reader.Read(encodedTypeAndClass)
+	dnsQuestion.domainName, index, err = decodeBytesAsDomainName(data)
 	if err != nil {
 		return dnsQuestion, err
 	}
 
-	dnsQuestion.type_ = binary.BigEndian.Uint16(encodedTypeAndClass[:2])
-	dnsQuestion.class = binary.BigEndian.Uint16(encodedTypeAndClass[2:4])
-
+	dnsQuestion.type_ = binary.BigEndian.Uint16(data[index : index+2])
+	dnsQuestion.class = binary.BigEndian.Uint16(data[index+2 : index+4])
 	return dnsQuestion, nil
 }
