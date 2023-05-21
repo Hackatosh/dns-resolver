@@ -29,6 +29,7 @@ go build -o .\out\dns-resolver && .\out\dns-resolver
 
 Well I do not really plan on doing more but this project could use :
 - More error handling
+- Write some unit tests on the decoding / encoding !
 - Protection against loop for DNS compression (this could allow some attack)
 - Implement some DNS caching ?
 - Handle more type of Records ?
