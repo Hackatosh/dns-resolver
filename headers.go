@@ -104,7 +104,7 @@ func encodeDNSHeadersAsBytes(headers DNSHeaders) []byte {
 	return bytes
 }
 
-func decodeBytesAsDNSHeaders(data []byte) DNSHeaders {
+func decodeBytesAsDNSHeaders(data []byte) (DNSHeaders, int) {
 	dnsHeaders := DNSHeaders{}
 	encodedDNSHeaders := data[:12]
 	dnsHeaders.id = binary.BigEndian.Uint16(encodedDNSHeaders[:2])
@@ -113,5 +113,5 @@ func decodeBytesAsDNSHeaders(data []byte) DNSHeaders {
 	dnsHeaders.answerRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[6:8])
 	dnsHeaders.authorityRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[8:10])
 	dnsHeaders.additionalRecordCount = binary.BigEndian.Uint16(encodedDNSHeaders[10:12])
-	return dnsHeaders
+	return dnsHeaders, 12
 }

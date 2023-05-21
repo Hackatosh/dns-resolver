@@ -25,22 +25,14 @@ func main() {
 		class:      1,
 	}
 
-	encodedHeaders := encodeDNSHeadersAsBytes(headers)
-	encodedQuestion := encodeDNSQuestionAsBytes(question)
-
-	dnsQuery := append(encodedHeaders, encodedQuestion...)
-
-	response, err := makeRequest(dnsServer, dnsQuery)
+	response, err := makeRequest(dnsServer, encodeDNSQueryAsBytes(headers, question))
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	responseDNSHeaders := decodeBytesAsDNSHeaders(response)
+	dnsPacket := decodeBytesAsDNSPacket(response)
 
-	responseQuestion, index := decodeBytesAsDNSQuestion(response, 12)
-	responseRecord, index := decodeBytesAsDNSRecord(response, index)
-	fmt.Printf("%+v\n", responseDNSHeaders)
-	fmt.Printf("%+v\n", responseQuestion)
-	fmt.Printf("%+v\n", responseRecord)
+	fmt.Printf("%+v\n", dnsPacket)
+	fmt.Println(rawDNSRecordDataToString(dnsPacket.answers[0].data))
 }
