@@ -22,7 +22,7 @@ https://github.com/google/gopacket/blob/master/layers/dns.go
 
 To run, use the following command and whitelist the dns-resolver folder in your favorite antivirus :
 ```
-go build -o .\out\dns-resolver && .\out\dns-resolver
+go build -o .\out\dns-resolver.exe && .\out\dns-resolver.exe
 ```
 
 ## Next step
